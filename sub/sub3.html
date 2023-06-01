@@ -1,0 +1,89 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="style.css" />
+    <h1>Simple Button</h1>
+  </head>
+  <body>
+    <p>
+      On/Off
+      <input type="checkbox" oninput="onoff(this)" />
+    </p>
+    <p>
+      Gate:
+      <input
+        id="myButton"
+        type="button"
+        onmousedown="gateon(event)"
+        onmouseup="gateoff(event)"
+        value="gate"
+      />
+    </p>
+
+    <!-- Load 'faust2wasm' script generated .js file -->
+    <script src="button.js"></script>
+
+    <script>
+      if (typeof WebAssembly === "undefined") {
+        alert(
+          "WebAssembly is not supported in this browser, the page will not work !"
+        );
+      }
+
+      var isWebKitAudio = typeof webkitAudioContext !== "undefined";
+      var audio_context = isWebKitAudio
+        ? new webkitAudioContext()
+        : new AudioContext();
+      var button_dsp = null;
+
+      function onoff(element) {
+        element.checked ? audio_context.resume() : audio_context.suspend();
+      }
+
+      function gateon(event) {
+        button_dsp.setParamValue("/Button/gate", 1);
+      }
+      function gateoff(event) {
+        button_dsp.setParamValue("/Button/gate", 0);
+      }
+
+      function startbutton() {
+        // Create the Faust generated node
+        var pluginURL = ".";
+        var plugin = new Faustbutton(audio_context, pluginURL);
+        plugin.load().then((node) => {
+          button_dsp = node;
+          console.log(button_dsp.getJSON());
+          // Print path to be used with 'setParamValue'
+          console.log(button_dsp.getParams());
+          // Connect it to output as a regular WebAudio node
+          button_dsp.connect(audio_context.destination);
+        });
+        audio_context.suspend();
+      }
+
+      // Load handler
+      window.addEventListener("load", startbutton);
+
+      // To activate audio on iOS
+      window.addEventListener(
+        "touchstart",
+        function () {
+          if (audio_context.state !== "suspended") return;
+          // create empty buffer
+          var buffer = audio_context.createBuffer(1, 1, 22050);
+          var source = audio_context.createBufferSource();
+          source.buffer = buffer;
+
+          // connect to output (your speakers)
+          source.connect(audio_context.destination);
+
+          // play the file
+          source.start();
+
+          audio_context.resume().then(() => console.log("Audio resumed"));
+        },
+        false
+      );
+    </script>
+  </body>
+</html>

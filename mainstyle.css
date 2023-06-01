@@ -1,0 +1,9 @@
+iframe {
+    width: 70%;
+    height: auto;
+    margin: auto;
+    background-color: #ffffff;
+    display: block;
+    border: 2px solid black;
+    resize: both;
+}
